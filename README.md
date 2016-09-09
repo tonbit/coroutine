@@ -1,4 +1,4 @@
-# C++11 single header file asymmetric coroutine implementation
+# C++11 single .h asymmetric coroutine implementation
 
 ```cpp
 #include "coroutine.h"
@@ -38,7 +38,7 @@ void thread_func()
 	
 	while (true)
 	{
-		//if resume routine new created, its callback will start running
+		//if resume routine new created, start to run its callback
 		rc = resume(rt1);
 		
 		//if resume routine suspended, swap to its yield point
@@ -52,7 +52,7 @@ void thread_func()
 			break;
 	}
 
-	//destroy routine, free resouce
+	//destroy routine, free resouce allocated
 	//don't destroy routine by itself
 	destroy_routine(rt1);
 	destroy_routine(rt2);
