@@ -203,7 +203,11 @@ await(Function&& func)
 
 #else
 
+#if __APPLE__ && __MACH__
+#include <sys/ucontext.h>
+#else 
 #include <ucontext.h>
+#endif
 
 namespace coroutine {
 

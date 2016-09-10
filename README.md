@@ -1,5 +1,21 @@
 # C++11 single .h asymmetric coroutine implementation
 
+### API
+
+* routine_t create_routine(std::function<void()> f);
+* void destroy_routine(routine_t id);
+* int resume(routine_t id);
+* void yield();
+* TYPE await(TYPE(*f)());
+* routine_t current_routine();
+
+### OS
+
+* Windows
+* macOS
+* Linux
+
+
 ```cpp
 #include "coroutine.h"
 using namespace coroutine;
