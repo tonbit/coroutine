@@ -72,11 +72,15 @@ struct Routine
 struct Ordinator
 {
 	std::vector<Routine *> routines;
+	std::list<routine_t> indexes;
 	routine_t current;
+	size_t stack_size;
 	LPVOID fiber;
 
-	Ordinator()
+	Ordinator(size_t ss = 1024*1024)
 	{
+		current = 0;
+		stack_size = ss;
 		fiber = ConvertThreadToFiber(nullptr);
 	}
 
@@ -93,17 +97,30 @@ thread_local static Ordinator ordinator;
 inline routine_t create_routine(std::function<void()> f)
 {
 	Routine *routine = new Routine(f);
-	ordinator.routines.push_back(routine);
-	return ordinator.routines.size();
+
+	if (ordinator.indexes.empty())
+	{
+		ordinator.routines.push_back(routine);
+		return ordinator.routines.size();
+	}
+	else
+	{
+		routine_t id = ordinator.indexes.front();
+		ordinator.indexes.pop_front();
+		assert(ordinator.routines[id-1] == nullptr);
+		ordinator.routines[id-1] = routine;
+		return id;
+	}
 }
 
 inline void destroy_routine(routine_t id)
 {
 	Routine *routine = ordinator.routines[id-1];
 	assert(routine != nullptr);
-	
+
 	delete routine;
 	ordinator.routines[id-1] = nullptr;
+	ordinator.indexes.push_back(id);
 }
 
 inline void __stdcall entry(LPVOID lpParameter)
@@ -116,7 +133,7 @@ inline void __stdcall entry(LPVOID lpParameter)
 
 	routine->finished = true;
 	ordinator.current = 0;
-	
+
 	SwitchToFiber(ordinator.fiber);
 }
 
@@ -133,7 +150,7 @@ inline int resume(routine_t id)
 
 	if (routine->fiber == nullptr)
 	{
-		routine->fiber = CreateFiber(0, entry, nullptr);
+		routine->fiber = CreateFiber(ordinator.stack_size, entry, 0);
 		ordinator.current = id;
 		SwitchToFiber(routine->fiber);
 	}
@@ -167,14 +184,14 @@ typename std::result_of<Function()>::type
 await(Function&& func)
 {
 	auto future = std::async(std::launch::async, func);
-	std::future_status status = future.wait_for(std::chrono::milliseconds(10));
+	std::future_status status = future.wait_for(std::chrono::milliseconds(100));
 
 	while (status == std::future_status::timeout)
 	{
 		if (ordinator.current != 0)
 			yield();
 
-		status = future.wait_for(std::chrono::milliseconds(10));
+		status = future.wait_for(std::chrono::milliseconds(0));
 	}
 	return future.get();
 }
@@ -186,14 +203,14 @@ std::result_of_t<std::decay_t<Function>()>
 await(Function&& func)
 {
 	auto future = std::async(std::launch::async, func);
-	std::future_status status = future.wait_for(std::chrono::milliseconds(10));
+	std::future_status status = future.wait_for(std::chrono::milliseconds(100));
 
 	while (status == std::future_status::timeout)
 	{
 		if (ordinator.current != 0)
 			yield();
 
-		status = future.wait_for(std::chrono::milliseconds(10));
+		status = future.wait_for(std::chrono::milliseconds(0));
 	}
 	return future.get();
 }
@@ -205,7 +222,7 @@ await(Function&& func)
 
 #if __APPLE__ && __MACH__
 #include <sys/ucontext.h>
-#else 
+#else
 #include <ucontext.h>
 #endif
 
@@ -217,8 +234,6 @@ struct Routine
 {
 	std::function<void()> func;
 	char *stack;
-	ptrdiff_t stack_size;
-	ptrdiff_t capacity;
 	bool finished;
 	ucontext_t ctx;
 
@@ -226,8 +241,6 @@ struct Routine
 	{
 		func = f;
 		stack = nullptr;
-		stack_size = 0;
-		capacity = 0;
 		finished = false;
 	}
 
@@ -243,26 +256,22 @@ struct Routine
 struct Ordinator
 {
 	std::vector<Routine *> routines;
+	std::list<routine_t> indexes;
 	routine_t current;
-	char *stack;
 	size_t stack_size;
 	ucontext_t ctx;
 
 	inline Ordinator(size_t ss = 1024*1024)
 	{
 		current = 0;
-		stack = (char *)malloc(ss);
 		stack_size = ss;
 	}
 
 	inline ~Ordinator()
 	{
 		for (auto &routine : routines)
-		{
-			if (routine)
-				delete routine;
-		}
-		free(stack);
+			delete routine;
+		routines.clear();
 	}
 };
 
@@ -271,15 +280,27 @@ thread_local static Ordinator ordinator;
 inline routine_t create_routine(std::function<void()> f)
 {
 	Routine *routine = new Routine(f);
-	ordinator.routines.push_back(routine);
-	return ordinator.routines.size();
+
+	if (ordinator.indexes.empty())
+	{
+		ordinator.routines.push_back(routine);
+		return ordinator.routines.size();
+	}
+	else
+	{
+		routine_t id = ordinator.indexes.front();
+		ordinator.indexes.pop_front();
+		assert(ordinator.routines[id-1] == nullptr);
+		ordinator.routines[id-1] = routine;
+		return id;
+	}
 }
 
 inline void destroy_routine(routine_t id)
 {
 	Routine *routine = ordinator.routines[id-1];
 	assert(routine != nullptr);
-	
+
 	delete routine;
 	ordinator.routines[id-1] = nullptr;
 }
@@ -292,6 +313,7 @@ inline void entry()
 
 	routine->finished = true;
 	ordinator.current = 0;
+	ordinator.indexes.push_back(id);
 }
 
 inline int resume(routine_t id)
@@ -304,7 +326,7 @@ inline int resume(routine_t id)
 
 	if (routine->finished)
 		return -2;
-	
+
 	if (routine->stack == nullptr)
 	{
 		//initializes the structure to the currently active context.
@@ -315,7 +337,8 @@ inline int resume(routine_t id)
 		//Before invoking makecontext(), the caller must allocate a new stack
 		//for this context and assign its address to ucp->uc_stack,
 		//and define a successor context and assign its address to ucp->uc_link.
-		routine->ctx.uc_stack.ss_sp = ordinator.stack;
+		routine->stack = (char *)malloc(ordinator.stack_size);
+		routine->ctx.uc_stack.ss_sp = routine->stack;
 		routine->ctx.uc_stack.ss_size = ordinator.stack_size;
 		routine->ctx.uc_link = &ordinator.ctx;
 		ordinator.current = id;
@@ -331,7 +354,6 @@ inline int resume(routine_t id)
 	}
 	else
 	{
-		memcpy(ordinator.stack + ordinator.stack_size - routine->stack_size, routine->stack, routine->stack_size);
 		ordinator.current = id;
 		swapcontext(&ordinator.ctx, &routine->ctx);
 	}
@@ -343,20 +365,13 @@ inline void yield()
 {
 	routine_t id = ordinator.current;
 	Routine *routine = ordinator.routines[id-1];
+	assert(routine != nullptr);
 
-	char *stack_top = ordinator.stack + ordinator.stack_size;
+	char *stack_top = routine->stack + ordinator.stack_size;
 	char stack_bottom = 0;
+	assert((size_t)(stack_top - &stack_bottom) <= ordinator.stack_size);
 
-	assert(stack_top - &stack_bottom <= ordinator.stack_size);
-
-	if (routine->capacity < stack_top - &stack_bottom)
-	{
-		free(routine->stack);
-		routine->capacity = stack_top - &stack_bottom;
-		routine->stack = (char *)malloc(routine->capacity);
-	}
-	routine->stack_size = stack_top - &stack_bottom;
-	memcpy(routine->stack, &stack_bottom, routine->stack_size);
+	printf("stack size: %zd\n", stack_top - &stack_bottom);
 
 	ordinator.current = 0;
 	swapcontext(&routine->ctx , &ordinator.ctx);
@@ -372,14 +387,14 @@ typename std::result_of<Function()>::type
 await(Function&& func)
 {
 	auto future = std::async(std::launch::async, func);
-	std::future_status status = future.wait_for(std::chrono::milliseconds(10));
+	std::future_status status = future.wait_for(std::chrono::milliseconds(100));
 
 	while (status == std::future_status::timeout)
 	{
 		if (ordinator.current != 0)
 			yield();
 
-		status = future.wait_for(std::chrono::milliseconds(10));
+		status = future.wait_for(std::chrono::milliseconds(0));
 	}
 	return future.get();
 }
