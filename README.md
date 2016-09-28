@@ -2,8 +2,9 @@
 
 ### API
 
-* routine_t create_routine(std::function<void()> f);
-* void destroy_routine(routine_t id);
+using namespace coroutine:        
+* routine_t create(std::function<void()> f);
+* void destroy(routine_t id);
 * int resume(routine_t id);
 * void yield();
 * TYPE await(TYPE(*f)());
@@ -33,8 +34,8 @@ void routine_func1()
 	//yield current routine, swap to resume point
 	yield();
 
-	//await result of function async called 
-	//if await result timeout in routine, yield()
+	//run function async
+	//yield current routine if result not returned
 	string str = await([]() {return "1"; });
 
 	printf("2 > ");
@@ -65,7 +66,7 @@ void thread_func()
 		//if routine has exited, resume it will return -2
 
 		rc = resume(rt2);
-		if (rc1 != 0)
+		if (rc != 0)
 			break;
 	}
 
@@ -79,7 +80,7 @@ int main()
 {
 	std::thread t1(thread_func);
 	std::thread t2([](){
-		//not support to coordinate routine cross threads
+		//unsupport coordinating routine cross threads
 	});
 	t1.join();
 	t2.join();

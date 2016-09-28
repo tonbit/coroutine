@@ -20,27 +20,23 @@
 #ifndef STDEX_COROUTINE_H_
 #define STDEX_COROUTINE_H_
 
-#include <limits.h>
-#include <assert.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
+#ifndef STACK_LIMIT
+#define STACK_LIMIT (1024*1024)
+#endif
+
+#include <cstdint>
+#include <cstring>
+#include <cstdio>
+#include <cassert>
 
 #include <string>
-using std::string;
-using std::wstring;
-
-#include <array>
 #include <vector>
 #include <list>
-#include <map>
-
-#include <utility>
 #include <thread>
 #include <future>
+
+using std::string;
+using std::wstring;
 
 #ifdef _MSC_VER
 
@@ -77,7 +73,7 @@ struct Ordinator
 	size_t stack_size;
 	LPVOID fiber;
 
-	Ordinator(size_t ss = 1024*1024)
+	Ordinator(size_t ss = STACK_LIMIT)
 	{
 		current = 0;
 		stack_size = ss;
@@ -94,7 +90,7 @@ struct Ordinator
 
 thread_local static Ordinator ordinator;
 
-inline routine_t create_routine(std::function<void()> f)
+inline routine_t create(std::function<void()> f)
 {
 	Routine *routine = new Routine(f);
 
@@ -113,7 +109,7 @@ inline routine_t create_routine(std::function<void()> f)
 	}
 }
 
-inline void destroy_routine(routine_t id)
+inline void destroy(routine_t id)
 {
 	Routine *routine = ordinator.routines[id-1];
 	assert(routine != nullptr);
@@ -179,9 +175,9 @@ routine_t current_routine()
 }
 
 #if 0
-template<class Function>
+template<typename Function>
 typename std::result_of<Function()>::type
-await(Function&& func)
+await(Function &&func)
 {
 	auto future = std::async(std::launch::async, func);
 	std::future_status status = future.wait_for(std::chrono::milliseconds(100));
@@ -198,9 +194,9 @@ await(Function&& func)
 #endif
 
 #if 1
-template<class Function>
+template<typename Function>
 std::result_of_t<std::decay_t<Function>()>
-await(Function&& func)
+await(Function &&func)
 {
 	auto future = std::async(std::launch::async, func);
 	std::future_status status = future.wait_for(std::chrono::milliseconds(100));
@@ -261,7 +257,7 @@ struct Ordinator
 	size_t stack_size;
 	ucontext_t ctx;
 
-	inline Ordinator(size_t ss = 1024*1024)
+	inline Ordinator(size_t ss = STACK_LIMIT)
 	{
 		current = 0;
 		stack_size = ss;
@@ -277,7 +273,7 @@ struct Ordinator
 
 thread_local static Ordinator ordinator;
 
-inline routine_t create_routine(std::function<void()> f)
+inline routine_t create(std::function<void()> f)
 {
 	Routine *routine = new Routine(f);
 
@@ -296,7 +292,7 @@ inline routine_t create_routine(std::function<void()> f)
 	}
 }
 
-inline void destroy_routine(routine_t id)
+inline void destroy(routine_t id)
 {
 	Routine *routine = ordinator.routines[id-1];
 	assert(routine != nullptr);
@@ -382,9 +378,9 @@ routine_t current_routine()
 	return ordinator.current;
 }
 
-template<class Function>
+template<typename Function>
 typename std::result_of<Function()>::type
-await(Function&& func)
+await(Function &&func)
 {
 	auto future = std::async(std::launch::async, func);
 	std::future_status status = future.wait_for(std::chrono::milliseconds(100));
