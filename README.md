@@ -2,78 +2,86 @@
 
 ### API
 
-using namespace coroutine:        
+in namespace coroutine:        
 * routine_t create(std::function<void()> f);
 * void destroy(routine_t id);
 * int resume(routine_t id);
 * void yield();
 * TYPE await(TYPE(*f)());
-* routine_t current_routine();
+* routine_t current();
+* class Channel<T> with push()/pop();
 
 ### OS
 
-* Windows
-* macOS
 * Linux
+* macOS
+* Windows
 
 ### Demo
 						
 ```cpp
 #include "coroutine.h"
-using namespace coroutine;
+#include <iostream>
+#include <chrono>
+
+coroutine::Channel<int> channel;
 
 string async_func()
 {
-	return "...";
+    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+	return "21";
 }
 
 void routine_func1()
 {
-	printf("1 > ");
+	int i = channel.pop();
+	std::cout << i << std::endl;
 	
-	//yield current routine, swap to resume point
-	yield();
-
-	//run function async
-	//yield current routine if result not returned
-	string str = await([]() {return "1"; });
-
-	printf("2 > ");
+	i = channel.pop();
+	std::cout << i << std::endl;
 }
 
 void routine_func2(int i)
 {
-	printf("3 > ");
-	yield();
+	std::cout << "20" << std::endl;
+	coroutine::yield();
+	
+	std::cout << "21" << std::endl;
+
+	//run function async
+	//yield current routine if result not returned
+	string str = coroutine::await(async_func);
+	std::cout << str << std::endl;
 }
 
 void thread_func()
 {
 	//create routine with callback like std::function<void()>
-	routine_t rt1 = create_routine(routine_func1);
-	routine_t rt2 = create_routine(std::bind(routine_func2, 2));
+	coroutine::routine_t rt1 = coroutine::create(routine_func1);
+	coroutine::routine_t rt2 = coroutine::create(std::bind(routine_func2, 2));
 	int rc;
 	
-	while (true)
-	{
-		//if resume routine new created, start to run its callback
-		rc = resume(rt1);
-		
-		//if resume routine suspended, swap to its yield point
-		rc = resume(rt1);
-		
-		//if routine has destroyed, resume it will return -1
-		//if routine has exited, resume it will return -2
+	std::cout << "00" << std::endl;	
+	coroutine::resume(rt1);
 
-		rc = resume(rt2);
-		if (rc != 0)
-			break;
-	}
+	std::cout << "01" << std::endl;
+	coroutine::resume(rt2);
+	
+	std::cout << "02" << std::endl;
+	channel.push(10);
+	
+	std::cout << "03" << std::endl;
+	coroutine::resume(rt2);
+	
+	std::cout << "04" << std::endl;
+	channel.push(11);
+	
+	std::cout << "05" << std::endl;
 
 	//destroy routine, free resouce allocated
-	//don't destroy routine by itself
-	destroy_routine(rt1);
-	destroy_routine(rt2);
+	//Warning: don't destroy routine by itself
+	coroutine::destroy(rt1);
+	coroutine::destroy(rt2);
 }
 
 int main()

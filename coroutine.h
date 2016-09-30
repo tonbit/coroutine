@@ -39,12 +39,20 @@ using std::string;
 using std::wstring;
 
 #ifdef _MSC_VER
-
 #include <Windows.h>
+#else
+#if __APPLE__ && __MACH__
+#include <sys/ucontext.h>
+#else
+#include <ucontext.h>
+#endif
+#endif
 
 namespace coroutine {
 
 typedef unsigned routine_t;
+
+#ifdef _MSC_VER
 
 struct Routine
 {
@@ -84,7 +92,6 @@ struct Ordinator
 	{
 		for (auto &routine : routines)
 			delete routine;
-		routines.clear();
 	}
 };
 
@@ -169,7 +176,7 @@ inline void yield()
 	SwitchToFiber(ordinator.fiber);
 }
 
-routine_t current_routine()
+routine_t current()
 {
 	return ordinator.current;
 }
@@ -212,19 +219,7 @@ await(Function &&func)
 }
 #endif
 
-}
-
 #else
-
-#if __APPLE__ && __MACH__
-#include <sys/ucontext.h>
-#else
-#include <ucontext.h>
-#endif
-
-namespace coroutine {
-
-typedef unsigned routine_t;
 
 struct Routine
 {
@@ -242,10 +237,7 @@ struct Routine
 
 	~Routine()
 	{
-		if (stack)
-		{
-			free(stack);
-		}
+		delete[] stack;
 	}
 };
 
@@ -267,7 +259,6 @@ struct Ordinator
 	{
 		for (auto &routine : routines)
 			delete routine;
-		routines.clear();
 	}
 };
 
@@ -333,7 +324,7 @@ inline int resume(routine_t id)
 		//Before invoking makecontext(), the caller must allocate a new stack
 		//for this context and assign its address to ucp->uc_stack,
 		//and define a successor context and assign its address to ucp->uc_link.
-		routine->stack = (char *)malloc(ordinator.stack_size);
+		routine->stack = new char[ordinator.stack_size];
 		routine->ctx.uc_stack.ss_sp = routine->stack;
 		routine->ctx.uc_stack.ss_size = ordinator.stack_size;
 		routine->ctx.uc_link = &ordinator.ctx;
@@ -367,13 +358,11 @@ inline void yield()
 	char stack_bottom = 0;
 	assert((size_t)(stack_top - &stack_bottom) <= ordinator.stack_size);
 
-	printf("stack size: %zd\n", stack_top - &stack_bottom);
-
 	ordinator.current = 0;
 	swapcontext(&routine->ctx , &ordinator.ctx);
 }
 
-routine_t current_routine()
+routine_t current()
 {
 	return ordinator.current;
 }
@@ -395,6 +384,58 @@ await(Function &&func)
 	return future.get();
 }
 
-}
 #endif
+
+template<typename Type>
+class Channel
+{
+public:
+	inline void push(const Type &obj)
+    {
+        _list.push_back(obj);
+        if (_taker)
+			resume(_taker);
+    }
+
+	inline void push(Type &&obj)
+    {
+        _list.push_back(std::move(obj));
+        if (_taker)
+			resume(_taker);
+    }
+
+	inline Type pop()
+    {
+    	if (!_taker)
+ 	   		_taker = current();
+
+		while (_list.empty())
+			yield();
+
+        Type obj = std::move(_list.front());
+        _list.pop_front();
+        return std::move(obj);
+    }
+
+    void clear()
+    {
+    	_list.clear();
+    }
+
+	inline size_t size()
+	{
+		return _list.size();
+	}
+
+	inline bool empty()
+	{
+		return _list.empty();
+	}
+
+private:
+	std::list<Type> _list;
+	routine_t _taker;
+};
+
+}
 #endif //STDEX_COROUTINE_H_
