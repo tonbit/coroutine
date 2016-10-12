@@ -390,6 +390,16 @@ template<typename Type>
 class Channel
 {
 public:
+	Channel()
+	{
+		_taker = 0;
+	}
+
+	void consumer(routine_t id)
+	{
+		_taker = id;
+	}
+	
 	inline void push(const Type &obj)
     {
         _list.push_back(obj);
