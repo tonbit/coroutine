@@ -395,11 +395,16 @@ public:
 		_taker = 0;
 	}
 
+	Channel(routine_t id)
+	{
+		_taker = id;
+	}
+
 	void consumer(routine_t id)
 	{
 		_taker = id;
 	}
-	
+
 	inline void push(const Type &obj)
     {
         _list.push_back(obj);
