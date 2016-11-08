@@ -88,7 +88,7 @@ int main()
 {
 	std::thread t1(thread_func);
 	std::thread t2([](){
-		//unsupport coordinating routine cross threads
+		//unsupport coordinating routine crossing threads
 	});
 	t1.join();
 	t2.join();
