@@ -59,7 +59,6 @@ void thread_func()
 	//create routine with callback like std::function<void()>
 	coroutine::routine_t rt1 = coroutine::create(routine_func1);
 	coroutine::routine_t rt2 = coroutine::create(std::bind(routine_func2, 2));
-	int rc;
 	
 	std::cout << "00" << std::endl;	
 	coroutine::resume(rt1);
