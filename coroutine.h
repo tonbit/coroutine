@@ -187,7 +187,7 @@ typename std::result_of<Function()>::type
 await(Function &&func)
 {
 	auto future = std::async(std::launch::async, func);
-	std::future_status status = future.wait_for(std::chrono::milliseconds(100));
+	std::future_status status = future.wait_for(std::chrono::milliseconds(0));
 
 	while (status == std::future_status::timeout)
 	{
@@ -206,7 +206,7 @@ std::result_of_t<std::decay_t<Function>()>
 await(Function &&func)
 {
 	auto future = std::async(std::launch::async, func);
-	std::future_status status = future.wait_for(std::chrono::milliseconds(100));
+	std::future_status status = future.wait_for(std::chrono::milliseconds(0));
 
 	while (status == std::future_status::timeout)
 	{
@@ -372,7 +372,7 @@ typename std::result_of<Function()>::type
 await(Function &&func)
 {
 	auto future = std::async(std::launch::async, func);
-	std::future_status status = future.wait_for(std::chrono::milliseconds(100));
+	std::future_status status = future.wait_for(std::chrono::milliseconds(0));
 
 	while (status == std::future_status::timeout)
 	{
