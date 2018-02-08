@@ -29,7 +29,7 @@ coroutine::Channel<int> channel;
 string async_func()
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-	return "21";
+	return "22";
 }
 
 void routine_func1()
@@ -76,6 +76,9 @@ void thread_func()
 	channel.push(11);
 	
 	std::cout << "05" << std::endl;
+	
+	std::this_thread::sleep_for(std::chrono::milliseconds(6000));
+	coroutine::resume(rt2);
 
 	//destroy routine, free resouce allocated
 	//Warning: don't destroy routine by itself
