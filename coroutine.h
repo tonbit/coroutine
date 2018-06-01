@@ -41,7 +41,7 @@ using std::wstring;
 #ifdef _MSC_VER
 #include <Windows.h>
 #else
-#if __APPLE__ && __MACH__
+#if defined(__APPLE__) && defined(__MACH__)
 #define _XOPEN_SOURCE
 #include <ucontext.h>
 #else
