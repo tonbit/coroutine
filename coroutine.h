@@ -35,8 +35,8 @@
 #include <thread>
 #include <future>
 
-using std::string;
-using std::wstring;
+using ::std::string;
+using ::std::wstring;
 
 #ifdef _MSC_VER
 #include <Windows.h>
@@ -334,7 +334,7 @@ inline int resume(routine_t id)
 		//When this context is later activated by swapcontext(), the function entry is called.
 		//When this function returns, the  successor context is activated.
 		//If the successor context pointer is NULL, the thread exits.
-		makecontext(&routine->ctx, (void (*)(void))entry, 0);
+		makecontext(&routine->ctx, reinterpret_cast<void (*)(void)>(entry), 0);
 
 		//The swapcontext() function saves the current context,
 		//and then activates the context of another.
@@ -357,7 +357,7 @@ inline void yield()
 
 	char *stack_top = routine->stack + ordinator.stack_size;
 	char stack_bottom = 0;
-	assert((size_t)(stack_top - &stack_bottom) <= ordinator.stack_size);
+	assert(size_t(stack_top - &stack_bottom) <= ordinator.stack_size);
 
 	ordinator.current = 0;
 	swapcontext(&routine->ctx , &ordinator.ctx);
