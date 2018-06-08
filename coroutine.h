@@ -409,14 +409,14 @@ public:
 	inline void push(const Type &obj)
     {
         _list.push_back(obj);
-        if (_taker)
+        if (_taker && _taker != current())
 			resume(_taker);
     }
 
 	inline void push(Type &&obj)
     {
         _list.push_back(std::move(obj));
-        if (_taker)
+        if (_taker && _taker != current())
 			resume(_taker);
     }
 
