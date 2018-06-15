@@ -438,6 +438,12 @@ public:
     	_list.clear();
     }
 
+	inline void touch()
+    {
+        if (_taker && _taker != current())
+			resume(_taker);
+    }
+	
 	inline size_t size()
 	{
 		return _list.size();
