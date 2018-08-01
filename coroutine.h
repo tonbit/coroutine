@@ -164,7 +164,7 @@ inline int resume(routine_t id)
 		SwitchToFiber(routine->fiber);
 	}
 
-	return 0;
+	return routine->finished ? -2 : 0;
 }
 
 inline void yield()
@@ -346,7 +346,7 @@ inline int resume(routine_t id)
 		swapcontext(&ordinator.ctx, &routine->ctx);
 	}
 
-	return 0;
+	return routine->finished ? -2 : 0;
 }
 
 inline void yield()
