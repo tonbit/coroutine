@@ -177,14 +177,14 @@ inline void yield()
 	SwitchToFiber(ordinator.fiber);
 }
 
-routine_t current()
+inline routine_t current()
 {
 	return ordinator.current;
 }
 
 #if 0
 template<typename Function>
-typename std::result_of<Function()>::type
+inline typename std::result_of<Function()>::type
 await(Function &&func)
 {
 	auto future = std::async(std::launch::async, func);
@@ -203,7 +203,7 @@ await(Function &&func)
 
 #if 1
 template<typename Function>
-std::result_of_t<std::decay_t<Function>()>
+inline std::result_of_t<std::decay_t<Function>()>
 await(Function &&func)
 {
 	auto future = std::async(std::launch::async, func);
@@ -363,13 +363,13 @@ inline void yield()
 	swapcontext(&routine->ctx , &ordinator.ctx);
 }
 
-routine_t current()
+inline routine_t current()
 {
 	return ordinator.current;
 }
 
 template<typename Function>
-typename std::result_of<Function()>::type
+inline typename std::result_of<Function()>::type
 await(Function &&func)
 {
 	auto future = std::async(std::launch::async, func);
@@ -401,7 +401,7 @@ public:
 		_taker = id;
 	}
 
-	void consumer(routine_t id)
+	inline void consumer(routine_t id)
 	{
 		_taker = id;
 	}
@@ -433,7 +433,7 @@ public:
         return std::move(obj);
     }
 
-    void clear()
+    inline void clear()
     {
     	_list.clear();
     }
