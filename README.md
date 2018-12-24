@@ -20,10 +20,6 @@ in namespace coroutine:
 ### Demo
 						
 ```cpp
-// coroutineTest.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
-#include "pch.h"
 #include <iostream>
 #include "coroutine.h"
 #include <chrono>
@@ -31,7 +27,7 @@ in namespace coroutine:
 
 coroutine::Channel<int> channel;
 
-#define LogF(x) \
+#define LogFN(x) \
 { \
     std::ostringstream os; \
     time_t now = time(0); \
@@ -41,84 +37,84 @@ coroutine::Channel<int> channel;
 
 string async_func()
 {
-    LogF("sleep_for 3000")
+    LogFN("sleep_for 3000")
     std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 
-    LogF("end")
+    LogFN("end")
     return "end";
 }
 
 void routine_func1()
 {
-    LogF("channel.pop()");
+    LogFN("channel.pop()");
     int i = channel.pop();
-    LogF(i);
+    LogFN(i);
 
-    LogF("channel.pop()");
+    LogFN("channel.pop()");
     i = channel.pop();
-    LogF(i);
+    LogFN(i);
 }
 
 void routine_func2(int i)
 {
-    LogF("coroutine::yield()");
+    LogFN("coroutine::yield()");
     coroutine::yield();
-    LogF("coroutine::yield() end");
+    LogFN("coroutine::yield() end");
 
-    LogF("await(async_func)");
+    LogFN("await(async_func)");
 
     //run function async
     //yield current routine if result not returned
     string str = coroutine::await(async_func);
-    LogF("await(async_func)" << str);
+    LogFN("await(async_func)" << str);
 }
 
 void thread_func()
 {
     //create routine with callback like std::function<void()>
     coroutine::routine_t rt1 = coroutine::create(routine_func1);
-    LogF("create rt1");
+    LogFN("create rt1");
 
     coroutine::routine_t rt2 = coroutine::create(std::bind(routine_func2, 2));
-    LogF("create rt2");
+    LogFN("create rt2");
 
     coroutine::routine_t rt3 = coroutine::create(routine_func1);
-    LogF("create rt3");
+    LogFN("create rt3");
 
-    LogF("resume rt1");
+    LogFN("resume rt1");
     coroutine::resume(rt1);
 
-    LogF("resume rt2");
+    LogFN("resume rt2");
     coroutine::resume(rt2);
 
-    LogF("resume rt3");
+    LogFN("resume rt3");
     coroutine::resume(rt3);
 
-    LogF("channel.push(10)");
+    LogFN("channel.push(10)");
     channel.push(10);
 
-    LogF("resume rt2");
+    LogFN("resume rt2");
     coroutine::resume(rt2);
 
-    LogF("channel.push(11)");
+    LogFN("channel.push(11)");
     channel.push(11);
 
-    LogF("sleep for 6000");
+    LogFN("sleep for 6000");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(6000));
 
-    LogF("resume rt2");
+    LogFN("resume rt2");
     coroutine::resume(rt2);
 
     //destroy routine, free resource allocated
     //Warning: don't destroy routine by itself
-    LogF("destroy rt1");
+    LogFN("destroy rt1");
     coroutine::destroy(rt1);
 
-    LogF("destroy rt2");
+    LogFN("destroy rt2");
     coroutine::destroy(rt2);
 
-    LogF("destroy rt3");
+    LogFN("destroy rt3");
     coroutine::destroy(rt3);
 }
 
