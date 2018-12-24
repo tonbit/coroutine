@@ -30,7 +30,6 @@ coroutine::Channel<int> channel;
 #define LogFN(x) \
 { \
     std::ostringstream os; \
-    time_t now = time(0); \
     os << __FUNCTION__ << " " << x; \
     std::cout << os.str() << std::endl; \
 }
