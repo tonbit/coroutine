@@ -20,80 +20,117 @@ in namespace coroutine:
 ### Demo
 						
 ```cpp
-#include "coroutine.h"
+// coroutineTest.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+
+#include "pch.h"
 #include <iostream>
+#include "coroutine.h"
 #include <chrono>
+#include <sstream>
 
 coroutine::Channel<int> channel;
 
+#define LogF(x) \
+{ \
+    std::ostringstream os; \
+    time_t now = time(0); \
+    os << __FUNCTION__ << " " << x; \
+    std::cout << os.str() << std::endl; \
+}
+
 string async_func()
 {
+    LogF("sleep_for 3000")
     std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-	return "22";
+
+    LogF("end")
+    return "end";
 }
 
 void routine_func1()
 {
-	int i = channel.pop();
-	std::cout << i << std::endl;
-	
-	i = channel.pop();
-	std::cout << i << std::endl;
+    LogF("channel.pop()");
+    int i = channel.pop();
+    LogF(i);
+
+    LogF("channel.pop()");
+    i = channel.pop();
+    LogF(i);
 }
 
 void routine_func2(int i)
 {
-	std::cout << "20" << std::endl;
-	coroutine::yield();
-	
-	std::cout << "21" << std::endl;
+    LogF("coroutine::yield()");
+    coroutine::yield();
+    LogF("coroutine::yield() end");
 
-	//run function async
-	//yield current routine if result not returned
-	string str = coroutine::await(async_func);
-	std::cout << str << std::endl;
+    LogF("await(async_func)");
+
+    //run function async
+    //yield current routine if result not returned
+    string str = coroutine::await(async_func);
+    LogF("await(async_func)" << str);
 }
 
 void thread_func()
 {
-	//create routine with callback like std::function<void()>
-	coroutine::routine_t rt1 = coroutine::create(routine_func1);
-	coroutine::routine_t rt2 = coroutine::create(std::bind(routine_func2, 2));
-	
-	std::cout << "00" << std::endl;	
-	coroutine::resume(rt1);
+    //create routine with callback like std::function<void()>
+    coroutine::routine_t rt1 = coroutine::create(routine_func1);
+    LogF("create rt1");
 
-	std::cout << "01" << std::endl;
-	coroutine::resume(rt2);
-	
-	std::cout << "02" << std::endl;
-	channel.push(10);
-	
-	std::cout << "03" << std::endl;
-	coroutine::resume(rt2);
-	
-	std::cout << "04" << std::endl;
-	channel.push(11);
-	
-	std::cout << "05" << std::endl;
-	
-	std::this_thread::sleep_for(std::chrono::milliseconds(6000));
-	coroutine::resume(rt2);
+    coroutine::routine_t rt2 = coroutine::create(std::bind(routine_func2, 2));
+    LogF("create rt2");
 
-	//destroy routine, free resouce allocated
-	//Warning: don't destroy routine by itself
-	coroutine::destroy(rt1);
-	coroutine::destroy(rt2);
+    coroutine::routine_t rt3 = coroutine::create(routine_func1);
+    LogF("create rt3");
+
+    LogF("resume rt1");
+    coroutine::resume(rt1);
+
+    LogF("resume rt2");
+    coroutine::resume(rt2);
+
+    LogF("resume rt3");
+    coroutine::resume(rt3);
+
+    LogF("channel.push(10)");
+    channel.push(10);
+
+    LogF("resume rt2");
+    coroutine::resume(rt2);
+
+    LogF("channel.push(11)");
+    channel.push(11);
+
+    LogF("sleep for 6000");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(6000));
+
+    LogF("resume rt2");
+    coroutine::resume(rt2);
+
+    //destroy routine, free resource allocated
+    //Warning: don't destroy routine by itself
+    LogF("destroy rt1");
+    coroutine::destroy(rt1);
+
+    LogF("destroy rt2");
+    coroutine::destroy(rt2);
+
+    LogF("destroy rt3");
+    coroutine::destroy(rt3);
 }
 
 int main()
 {
-	std::thread t1(thread_func);
-	std::thread t2([](){
-		//unsupport coordinating routine crossing threads
-	});
-	t1.join();
-	t2.join();
-	return 0;
+    std::thread t1(thread_func);
+    std::thread t2([]() {
+        //unsupported coordinating routine crossing threads
+    });
+    t1.join();
+    t2.join();
+
+    return 0;
 }
 ```
