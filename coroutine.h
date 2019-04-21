@@ -183,40 +183,40 @@ inline routine_t current()
 }
 
 #if 0
-template<typename Function>
-inline typename std::result_of<Function()>::type
-await(Function &&func)
+template<typename Function, typename ... Args>
+inline typename std::result_of<Function(Args...)>::type
+await(Function &&func, Args && ... args)
 {
-	auto future = std::async(std::launch::async, func);
-	std::future_status status = future.wait_for(std::chrono::milliseconds(0));
+    auto future = std::async(std::launch::async, func, std::forward<Args>(args)...);
+    std::future_status status = future.wait_for(std::chrono::milliseconds(0));
 
-	while (status == std::future_status::timeout)
-	{
-		if (ordinator.current != 0)
-			yield();
+    while (status == std::future_status::timeout)
+    {
+        if (ordinator.current != 0)
+            yield();
 
-		status = future.wait_for(std::chrono::milliseconds(0));
-	}
-	return future.get();
+        status = future.wait_for(std::chrono::milliseconds(0));
+    }
+    return future.get();
 }
 #endif
 
 #if 1
-template<typename Function>
-inline std::result_of_t<std::decay_t<Function>()>
-await(Function &&func)
+template<typename Function, typename ... Args>
+inline std::result_of_t<Function(Args...)>
+await(Function &&func, Args && ... args)
 {
-	auto future = std::async(std::launch::async, func);
-	std::future_status status = future.wait_for(std::chrono::milliseconds(0));
+    auto future = std::async(std::launch::async, func, std::forward<Args>(args)...);
+    std::future_status status = future.wait_for(std::chrono::milliseconds(0));
 
-	while (status == std::future_status::timeout)
-	{
-		if (ordinator.current != 0)
-			yield();
+    while (status == std::future_status::timeout)
+    {
+        if (ordinator.current != 0)
+            yield();
 
-		status = future.wait_for(std::chrono::milliseconds(0));
-	}
-	return future.get();
+        status = future.wait_for(std::chrono::milliseconds(0));
+    }
+    return future.get();
 }
 #endif
 
@@ -368,21 +368,21 @@ inline routine_t current()
 	return ordinator.current;
 }
 
-template<typename Function>
-inline typename std::result_of<Function()>::type
-await(Function &&func)
+template<typename Function, typename ... Args>
+inline typename std::result_of<Function(Args...)>::type
+await(Function &&func, Args&& ... args)
 {
-	auto future = std::async(std::launch::async, func);
-	std::future_status status = future.wait_for(std::chrono::milliseconds(0));
+    auto future = std::async(std::launch::async, func, std::forward<Args>(args)...);
+    std::future_status status = future.wait_for(std::chrono::milliseconds(0));
 
-	while (status == std::future_status::timeout)
-	{
-		if (ordinator.current != 0)
-			yield();
+    while (status == std::future_status::timeout)
+    {
+        if (ordinator.current != 0)
+            yield();
 
-		status = future.wait_for(std::chrono::milliseconds(0));
-	}
-	return future.get();
+        status = future.wait_for(std::chrono::milliseconds(0));
+    }
+    return future.get();
 }
 
 #endif
