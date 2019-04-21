@@ -1,21 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License. You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements. See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership. The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License. You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied. See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
 
 #ifndef STDEX_COROUTINE_H_
 #define STDEX_COROUTINE_H_
@@ -111,26 +111,26 @@ inline routine_t create(std::function<void()> f)
 	{
 		routine_t id = ordinator.indexes.front();
 		ordinator.indexes.pop_front();
-		assert(ordinator.routines[id-1] == nullptr);
-		ordinator.routines[id-1] = routine;
+		assert(ordinator.routines[id - 1] == nullptr);
+		ordinator.routines[id - 1] = routine;
 		return id;
 	}
 }
 
 inline void destroy(routine_t id)
 {
-	Routine *routine = ordinator.routines[id-1];
+	Routine *routine = ordinator.routines[id - 1];
 	assert(routine != nullptr);
 
 	delete routine;
-	ordinator.routines[id-1] = nullptr;
+	ordinator.routines[id - 1] = nullptr;
 	ordinator.indexes.push_back(id);
 }
 
 inline void __stdcall entry(LPVOID lpParameter)
 {
 	routine_t id = ordinator.current;
-	Routine *routine = ordinator.routines[id-1];
+	Routine *routine = ordinator.routines[id - 1];
 	assert(routine != nullptr);
 
 	routine->func();
@@ -145,7 +145,7 @@ inline int resume(routine_t id)
 {
 	assert(ordinator.current == 0);
 
-	Routine *routine = ordinator.routines[id-1];
+	Routine *routine = ordinator.routines[id - 1];
 	if (routine == nullptr)
 		return -1;
 
@@ -170,7 +170,7 @@ inline int resume(routine_t id)
 inline void yield()
 {
 	routine_t id = ordinator.current;
-	Routine *routine = ordinator.routines[id-1];
+	Routine *routine = ordinator.routines[id - 1];
 	assert(routine != nullptr);
 
 	ordinator.current = 0;
@@ -183,11 +183,11 @@ inline routine_t current()
 }
 
 #if 0
-template<typename Function>
-inline typename std::result_of<Function()>::type
-await(Function &&func)
+template<typename Function, typename ... Args>
+inline std::result_of_t<std::decay_t<Function>()>
+await(Function &&func, Args && ... args)
 {
-	auto future = std::async(std::launch::async, func);
+	auto future = std::async(std::launch::async, func, std::forward<Args>(args)...);
 	std::future_status status = future.wait_for(std::chrono::milliseconds(0));
 
 	while (status == std::future_status::timeout)
@@ -202,11 +202,11 @@ await(Function &&func)
 #endif
 
 #if 1
-template<typename Function>
+template<typename Function, typename ... Args>
 inline std::result_of_t<std::decay_t<Function>()>
-await(Function &&func)
+await(Function &&func, Args && ... args)
 {
-	auto future = std::async(std::launch::async, func);
+	auto future = std::async(std::launch::async, func, std::forward<Args>(args)...);
 	std::future_status status = future.wait_for(std::chrono::milliseconds(0));
 
 	while (status == std::future_status::timeout)
@@ -278,25 +278,25 @@ inline routine_t create(std::function<void()> f)
 	{
 		routine_t id = ordinator.indexes.front();
 		ordinator.indexes.pop_front();
-		assert(ordinator.routines[id-1] == nullptr);
-		ordinator.routines[id-1] = routine;
+		assert(ordinator.routines[id - 1] == nullptr);
+		ordinator.routines[id - 1] = routine;
 		return id;
 	}
 }
 
 inline void destroy(routine_t id)
 {
-	Routine *routine = ordinator.routines[id-1];
+	Routine *routine = ordinator.routines[id - 1];
 	assert(routine != nullptr);
 
 	delete routine;
-	ordinator.routines[id-1] = nullptr;
+	ordinator.routines[id - 1] = nullptr;
 }
 
 inline void entry()
 {
 	routine_t id = ordinator.current;
-	Routine *routine = ordinator.routines[id-1];
+	Routine *routine = ordinator.routines[id - 1];
 	routine->func();
 
 	routine->finished = true;
@@ -308,7 +308,7 @@ inline int resume(routine_t id)
 {
 	assert(ordinator.current == 0);
 
-	Routine *routine = ordinator.routines[id-1];
+	Routine *routine = ordinator.routines[id - 1];
 	if (routine == nullptr)
 		return -1;
 
@@ -334,7 +334,7 @@ inline int resume(routine_t id)
 		//When this context is later activated by swapcontext(), the function entry is called.
 		//When this function returns, the  successor context is activated.
 		//If the successor context pointer is NULL, the thread exits.
-		makecontext(&routine->ctx, reinterpret_cast<void (*)(void)>(entry), 0);
+		makecontext(&routine->ctx, reinterpret_cast<void(*)(void)>(entry), 0);
 
 		//The swapcontext() function saves the current context,
 		//and then activates the context of another.
@@ -352,7 +352,7 @@ inline int resume(routine_t id)
 inline void yield()
 {
 	routine_t id = ordinator.current;
-	Routine *routine = ordinator.routines[id-1];
+	Routine *routine = ordinator.routines[id - 1];
 	assert(routine != nullptr);
 
 	char *stack_top = routine->stack + ordinator.stack_size;
@@ -360,7 +360,7 @@ inline void yield()
 	assert(size_t(stack_top - &stack_bottom) <= ordinator.stack_size);
 
 	ordinator.current = 0;
-	swapcontext(&routine->ctx , &ordinator.ctx);
+	swapcontext(&routine->ctx, &ordinator.ctx);
 }
 
 inline routine_t current()
@@ -368,11 +368,11 @@ inline routine_t current()
 	return ordinator.current;
 }
 
-template<typename Function>
+template<typename Function, typename ... Args>
 inline typename std::result_of<Function()>::type
-await(Function &&func)
+await(Function &&func, Args&& ... args)
 {
-	auto future = std::async(std::launch::async, func);
+	auto future = std::async(std::launch::async, func, std::forward<Args>(args)...);
 	std::future_status status = future.wait_for(std::chrono::milliseconds(0));
 
 	while (status == std::future_status::timeout)
@@ -407,43 +407,43 @@ public:
 	}
 
 	inline void push(const Type &obj)
-    {
-        _list.push_back(obj);
-        if (_taker && _taker != current())
+	{
+		_list.push_back(obj);
+		if (_taker && _taker != current())
 			resume(_taker);
-    }
+	}
 
 	inline void push(Type &&obj)
-    {
-        _list.push_back(std::move(obj));
-        if (_taker && _taker != current())
+	{
+		_list.push_back(std::move(obj));
+		if (_taker && _taker != current())
 			resume(_taker);
-    }
+	}
 
 	inline Type pop()
-    {
-    	if (!_taker)
- 	   		_taker = current();
+	{
+		if (!_taker)
+			_taker = current();
 
 		while (_list.empty())
 			yield();
 
-        Type obj = std::move(_list.front());
-        _list.pop_front();
-        return std::move(obj);
-    }
+		Type obj = std::move(_list.front());
+		_list.pop_front();
+		return std::move(obj);
+	}
 
-    inline void clear()
-    {
-    	_list.clear();
-    }
+	inline void clear()
+	{
+		_list.clear();
+	}
 
 	inline void touch()
-    {
-        if (_taker && _taker != current())
+	{
+		if (_taker && _taker != current())
 			resume(_taker);
-    }
-	
+	}
+
 	inline size_t size()
 	{
 		return _list.size();
