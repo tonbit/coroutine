@@ -291,6 +291,7 @@ inline void destroy(routine_t id)
 
 	delete routine;
 	ordinator.routines[id-1] = nullptr;
+	ordinator.indexes.push_back(id);
 }
 
 inline void entry()
