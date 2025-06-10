@@ -8,6 +8,7 @@ in namespace coroutine:
 * int resume(routine_t id);
 * void yield();
 * TYPE await(TYPE(*f)());
+* TYPE await(func, args);
 * routine_t current();
 * class Channel<T> with push()/pop();
 
