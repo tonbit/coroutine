@@ -19,7 +19,9 @@ in namespace coroutine:
 * Windows
 
 ### Demo
-						
+
+See file `examples/demo.cpp`
+
 ```cpp
 #include "coroutine.h"
 #include <iostream>
